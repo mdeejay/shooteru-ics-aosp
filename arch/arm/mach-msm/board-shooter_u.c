@@ -5799,6 +5799,7 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned char enable)
 
 	curr = &sdcc_vreg_data[dev_id - 1];
 	curr_vdd_reg = curr->vdd_data;
+	curr_vccq_reg = curr->vccq_data;
 	curr_vddp_reg = curr->vddp_data;
 
 	/* check if regulators are initialized or not? */
@@ -5816,7 +5817,6 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned char enable)
 
 	if (curr->sts == enable)
 		goto out;
-
 	mdelay(5);
 	if (curr_vdd_reg) {
 		if (enable) {
@@ -5854,6 +5854,7 @@ static int msm_sdcc_setup_vreg(int dev_id, unsigned char enable)
 out:
 	return rc;
 }
+
 
 static u32 msm_sdcc_setup_power(struct device *dv, unsigned int vdd)
 {

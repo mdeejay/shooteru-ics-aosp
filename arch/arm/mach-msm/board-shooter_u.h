@@ -27,12 +27,12 @@ extern int panel_type;
 /* GPIO definition */
 
 /* Direct Keys */
-#define SHOOTER_U_GPIO_SW_LCM_3D       (64)
-#define SHOOTER_U_GPIO_SW_LCM_2D       (68)
+//#define SHOOTER_U_GPIO_SW_LCM_3D       (64) /*temp disabled*/
+//#define SHOOTER_U_GPIO_SW_LCM_2D       (68) /*temp disabled*/
 #define SHOOTER_U_GPIO_KEY_VOL_DOWN    (103)
 #define SHOOTER_U_GPIO_KEY_VOL_UP      (104)
-#define SHOOTER_U_GPIO_KEY_CAM_STEP2   (115)
-#define SHOOTER_U_GPIO_KEY_CAM_STEP1   (123)
+//#define SHOOTER_U_GPIO_KEY_CAM_STEP2   (115) /*temp disabled*/
+//#define SHOOTER_U_GPIO_KEY_CAM_STEP1   (123) /*temp disabled*/
 #define SHOOTER_U_GPIO_KEY_POWER       (125)
 
 /* Battery */

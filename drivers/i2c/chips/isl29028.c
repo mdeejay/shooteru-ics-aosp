@@ -35,7 +35,7 @@
 #include <linux/wakelock.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
-#include <mach/board_htc.h>
+#include <mach/board.h>
 
 #define DPS(x...) printk(KERN_DEBUG "[PS][ISL29028] " x)
 #define DLS(x...) printk(KERN_DEBUG "[LS][ISL29028] " x)

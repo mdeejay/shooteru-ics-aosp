@@ -471,8 +471,8 @@ static struct regulator_init_data saw_s0_init_data = {
 		.constraints = {
 			.name = "8901_s0",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-			.min_uV = 840000,
-			.max_uV = 1250000,
+			.min_uV = 800000,
+			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S0,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S0),
@@ -482,8 +482,8 @@ static struct regulator_init_data saw_s1_init_data = {
 		.constraints = {
 			.name = "8901_s1",
 			.valid_ops_mask = REGULATOR_CHANGE_VOLTAGE,
-			.min_uV = 840000,
-			.max_uV = 1250000,
+			.min_uV = 800000,
+			.max_uV = 1350000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S1,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S1),
@@ -2827,8 +2827,8 @@ static struct regulator_consumer_supply vreg_consumers_PM8901_S4_PC[] = {
 /* RPM early regulator constraints */
 static struct rpm_regulator_init_data rpm_regulator_early_init_data[] = {
 	/*	 ID       a_on pd ss min_uV   max_uV   init_ip    freq */
-	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1250000, SMPS_HMIN, 1p92),
-	RPM_SMPS(PM8058_S1, 0, 1, 1,  500000, 1250000, SMPS_HMIN, 1p92),
+	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1350000, SMPS_HMIN, 1p92),
+	RPM_SMPS(PM8058_S1, 0, 1, 1,  500000, 1350000, SMPS_HMIN, 1p92),
 };
 
 /* RPM regulator constraints */
@@ -6480,6 +6480,8 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	int rc = 0;
 	struct kobject *properties_kobj;
 
+	pmic_reset_irq = PM8058_IRQ_BASE + PM8058_RESOUT_IRQ;
+
 	/*
 	 * Initialize RPM first as other drivers and devices may need
 	 * it for their initialization.
@@ -6672,15 +6674,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	shooter_u_audio_init();
 #endif
 
-	shooter_u_init_keypad();
-
-	properties_kobj = kobject_create_and_add("board_properties", NULL);
-	if (properties_kobj)
-		rc = sysfs_create_group(properties_kobj,
-                                &shooter_u_properties_attr_group);
-	if (!properties_kobj || rc)
-		pr_err("failed to create board_properties\n");
-
 	sysinfo_proc_init();
 
 	shooter_u_wifi_init();
@@ -6690,6 +6683,15 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	msm_mpm_set_irq_ignore_list(irq_ignore_tbl, irq_num_ignore_tbl);
 
 	headset_device_register();
+
+	shooter_u_init_keypad();
+
+	properties_kobj = kobject_create_and_add("board_properties", NULL);
+		if (properties_kobj)
+		rc = sysfs_create_group(properties_kobj,
+                                &shooter_u_properties_attr_group);
+		if (!properties_kobj || rc)
+		pr_err("failed to create board_properties\n");
 
 }
 

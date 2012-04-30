@@ -1931,19 +1931,19 @@ static struct msm_camera_sensor_flash_data flash_s5k6aafx = {
 
 static struct msm_camera_sensor_info msm_camera_sensor_s5k6aafx_data = {
 	.sensor_name	= "s5k6aafx",
-	.sensor_reset	= SHOOTER_U_WEBCAM_RST,/*2nd Cam RST*/
-	.sensor_pwd		= SHOOTER_U_WEBCAM_STB,/*2nd Cam PWD*/
-	.vcm_enable		= 0,
+	.sensor_reset	= SHOOTER_U_WEBCAM_RST,
+	.sensor_pwd = SHOOTER_U_WEBCAM_STB,
+	.vcm_enable = 0,
 	.camera_power_on = Shooter_U_s5k6aafx_vreg_on,
 	.camera_power_off = Shooter_U_s5k6aafx_vreg_off,
 	.camera_clk_switch = Shooter_U_seccam_clk_switch,
-	.pdata			= &msm_camera_device_data_web_cam,
-	.resource		= msm_camera_resources,
-	.num_resources	= ARRAY_SIZE(msm_camera_resources),
-	.flash_data             = &flash_s5k6aafx,
+	.pdata = &msm_camera_device_data_web_cam,
+	.resource = msm_camera_resources,
+	.num_resources = ARRAY_SIZE(msm_camera_resources),
+	.flash_data = &flash_s5k6aafx,
 	.mirror_mode = 0,
-	.csi_if		= 1,
-	.dev_node	= 1
+	.csi_if	= 1,
+	.dev_node = 1
 };
 
 static void __init msm8x60_init_camera(void)
@@ -2219,7 +2219,7 @@ static void __init msm8x60_init_dsps(void)
 /* Note: must be multiple of 4096 */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
-#define MSM_PMEM_SF_SIZE			0x1000000 /* 16 Mbytes */
+#define MSM_PMEM_SF_SIZE			0x2000000 /* 32 Mbytes */
 #define MSM_PMEM_ADSP_SIZE			0x2700000
 #define MSM_PMEM_ADSP2_SIZE			0x800000 /* 1152 * 1920 * 1.5 * 2 */
 #define MSM_PMEM_AUDIO_SIZE			0x239000

@@ -546,8 +546,6 @@ static struct msm_fb_platform_data msm_fb_pdata = {
 static struct platform_device msm_fb_device = {
 	.name   = "msm_fb",
 	.id     = 0,
-	//.num_resources     = ARRAY_SIZE(msm_fb_resources),
-	//.resource          = msm_fb_resources,
 	.dev.platform_data = &msm_fb_pdata,
 };
 

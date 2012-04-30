@@ -2219,7 +2219,7 @@ static void __init msm8x60_init_dsps(void)
 /* Note: must be multiple of 4096 */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
-#define MSM_PMEM_SF_SIZE			0x4000000 /* 64 Mbytes */
+#define MSM_PMEM_SF_SIZE			0x1000000 /* 16 Mbytes */
 #define MSM_PMEM_ADSP_SIZE			0x2700000
 #define MSM_PMEM_ADSP2_SIZE			0x800000 /* 1152 * 1920 * 1.5 * 2 */
 #define MSM_PMEM_AUDIO_SIZE			0x239000
@@ -2463,14 +2463,14 @@ static void __init msm8x60_allocate_memory_regions(void)
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
-	msm_fb_resources[0].start = MSM_FB_BASE + 0x10000000;
+	msm_fb_resources[0].start = MSM_FB_BASE;
 	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
 	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for fb\n",
 		size, __va(MSM_FB_BASE), (unsigned long) MSM_FB_BASE);
 
 #ifdef CONFIG_FB_MSM_OVERLAY_WRITEBACK
 	size = MSM_FB_WRITEBACK_SIZE;
-	msm_fb_resources[1].start = MSM_FB_WRITEBACK_BASE + 0x10000000;
+	msm_fb_resources[1].start = MSM_FB_WRITEBACK_BASE;
 	msm_fb_resources[1].end = msm_fb_resources[1].start + size - 1;
 	pr_info("allocating %lu bytes at 0x%p (0x%lx physical) for overlay\n",
 		size, __va(MSM_FB_WRITEBACK_BASE), (unsigned long) MSM_FB_WRITEBACK_BASE);

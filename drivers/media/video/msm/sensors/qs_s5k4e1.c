@@ -18,10 +18,10 @@
 #include <linux/uaccess.h>
 #include <linux/miscdevice.h>
 #include <linux/slab.h>
-#include <media/msm_camera-liteon.h>
+#include <media/msm_camera_sensor.h>
 #include <mach/gpio.h>
 //#include <mach/camera.h>
-#include <mach/camera-liteon.h>
+#include <mach/camera-8x60.h>
 #include "qs_s5k4e1.h"
 /*=============================================================
 	SENSOR REGISTER DEFINES
@@ -364,7 +364,7 @@ static int32_t qs_s5k4e1_eeprom_i2c_read_b(unsigned short raddr,
 	return rc;
 }
 
-static int32_t qs_s5k4e1_get_calibration_data(
+/*static int32_t qs_s5k4e1_get_calibration_data(
 	struct sensor_3d_cali_data_t *cdata)
 {
 	int32_t rc = 0;
@@ -447,7 +447,7 @@ fail:
 	cali_data_status = 0;
 	return -EIO;
 
-}
+}*/
 static int32_t qs_s5k4e1_write_left_lsc(char *left_lsc, int rt)
 {
 	struct qs_s5k4e1_i2c_reg_conf *ptr = (struct qs_s5k4e1_i2c_reg_conf *)
@@ -839,7 +839,7 @@ static int32_t qs_s5k4e1_set_fps(struct fps_cfg   *fps)
 	return rc;
 }
 
-static int32_t qs_s5k4e1_write_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
+/*static int32_t qs_s5k4e1_write_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
 {
 	uint16_t max_legal_gain = 0x0200;
 
@@ -852,8 +852,8 @@ static int32_t qs_s5k4e1_write_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
 		CDBG("Max legal gain Line:%d\n", __LINE__);
 		gain = max_legal_gain;
 	}
-	/*pr_info("qs_s5k4e1_write_exp_gain :
-		gain = %d line = %d\n", gain, line);*/
+	pr_info("qs_s5k4e1_write_exp_gain :
+		gain = %d line = %d\n", gain, line);
 
 	if (qs_s5k4e1_ctrl->sensormode == SENSOR_PREVIEW_MODE) {
 		qs_s5k4e1_ctrl->my_reg_gain = gain;
@@ -889,15 +889,15 @@ static int32_t qs_s5k4e1_write_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
 	}
 	qs_s5k4e1_group_hold_off();
 	return rc;
-}
+}*/
 #endif
 
-static int32_t qs_s5k4e1_set_pict_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
+/*static int32_t qs_s5k4e1_set_pict_exp_gain(struct sensor_3d_exp_cfg exp_cfg)
 {
 	int32_t rc = 0;
 	rc = qs_s5k4e1_write_exp_gain(exp_cfg);
 	return rc;
-}
+}*/
 
 static int32_t qs_s5k4e1_write_focus_value(uint16_t code_value)
 {
@@ -1445,7 +1445,7 @@ static int32_t qs_s5k4e1_raw_snapshot_config(int mode)
 	return rc;
 } /*end of qs_s5k4e1_raw_snapshot_config*/
 
-static int32_t qs_s5k4e1_mode_init(int mode, struct sensor_init_cfg init_info)
+/*static int32_t qs_s5k4e1_mode_init(int mode, struct sensor_init_cfg init_info)
 {
 	int32_t rc = 0;
 	if (mode != qs_s5k4e1_ctrl->cam_mode) {
@@ -1478,7 +1478,7 @@ static int32_t qs_s5k4e1_mode_init(int mode, struct sensor_init_cfg init_info)
 		qs_s5k4e1_ctrl->prev_res);
 	}
 	return rc;
-}
+}*/
 static int32_t qs_s5k4e1_set_sensor_mode(int mode,
 	int res)
 {
@@ -1707,7 +1707,7 @@ static struct i2c_driver qs_s5k4e1_i2c_driver = {
 	},
 };
 
-int qs_s5k4e1_3D_sensor_config(void __user *argp)
+/*int qs_s5k4e1_3D_sensor_config(void __user *argp)
 {
 	struct sensor_large_data cdata;
 	long rc;
@@ -1727,7 +1727,7 @@ int qs_s5k4e1_3D_sensor_config(void __user *argp)
 fail:
 	mutex_unlock(&qs_s5k4e1_mut);
 	return rc;
-}
+}*/
 
 int qs_s5k4e1_2D_sensor_config(void __user *argp)
 {
@@ -1842,9 +1842,6 @@ int qs_s5k4e1_2D_sensor_config(void __user *argp)
 			break;
 
 		case CFG_GET_AF_MAX_STEPS:
-			if (qs_s5k4e1_ctrl->cam_mode == MODE_3D)
-				cdata.max_steps = QS_S5K4E1_TOTAL_STEPS_3D;
-			else
 				cdata.max_steps =
 					QS_S5K4E1_TOTAL_STEPS_NEAR_TO_FAR;
 
@@ -1888,9 +1885,6 @@ int qs_s5k4e1_sensor_config(void __user *argp)
 		(void *)argp,
 		sizeof(int)))
 		return -EFAULT;
-	if (cfgtype != CFG_GET_3D_CALI_DATA)
-		rc = qs_s5k4e1_2D_sensor_config(argp);
-	else
 		rc = qs_s5k4e1_3D_sensor_config(argp);
 	return rc;
 }

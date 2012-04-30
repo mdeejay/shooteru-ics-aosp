@@ -35,7 +35,7 @@
 #include <linux/wakelock.h>
 #include <linux/rtc.h>
 #include <linux/slab.h>
-#include <mach/board.h>
+#include <mach/board_htc.h>
 
 #define DPS(x...) printk(KERN_DEBUG "[PS][ISL29028] " x)
 #define DLS(x...) printk(KERN_DEBUG "[LS][ISL29028] " x)
@@ -674,7 +674,7 @@ static void sensor_irq_do_work(struct work_struct *work)
 
 	wake_lock_timeout(&(lpi->ps_wake_lock), 3*HZ);
 
-	value1 = gpio_get_value(lpi->intr_pin);
+	value1 = gpio_get_value_cansleep(lpi->intr_pin);
 	/*DPS("%s: lpi->intr_pin = %d\n", __func__, value1);*/
 
 	buffer[0] = ISL29028_INTERRUPT;
@@ -808,7 +808,7 @@ static void info_do_work(struct work_struct *w)
 	DPS("%s: TEST1 = 0x%02x, TEST2 = 0x%02x\n",
 		__func__, value_of_test1, value_of_test2);
 
-	value1 = gpio_get_value(lpi->intr_pin);
+	value1 = gpio_get_value_cansleep(lpi->intr_pin);
 	DPS("%s: intr_pin = %d, value of intr_pin = %d\n",
 		__func__, lpi->intr_pin, value1);
 
@@ -992,7 +992,7 @@ static irqreturn_t isl29028_irq_handler(int irq, void *data)
 	struct isl29028_info *lpi = data;
 
 	/*int value1;
-	value1 = gpio_get_value(lpi->intr_pin);
+	value1 = gpio_get_value_cansleep(lpi->intr_pin);
 	DPS("\n%s: intr_pin = %d, value of intr_pin = %d\n",
 		__func__, lpi->intr_pin, value1);*/
 	if (lpi->ps_enable == 1)
@@ -1421,7 +1421,7 @@ static ssize_t ps_adc_show(struct device *dev,
 	/*cancel_delayed_work(&info_work);*/
 /*#endif*/
 
-	value1 = gpio_get_value(lpi->intr_pin);
+	value1 = gpio_get_value_cansleep(lpi->intr_pin);
 
 	value = get_ps_adc_value();
 

@@ -1,5 +1,4 @@
-/* Copyright (c) 2010-2011, Code Aurora Forum. All rights reserved.
- * Copyright (c) 2012, The CyanogenMod Project
+/* Copyright (c) 2010-2012, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -18,13 +17,19 @@
 #include <linux/irq.h>
 #include <linux/io.h>
 #include <linux/mfd/pmic8058.h>
+#include <linux/input/pmic8xxx-pwrkey.h>
+#include <linux/input/pmic8xxx-keypad.h>
+#include <linux/pmic8058-othc.h>
+#include <linux/pmic8058-pwm.h>
 #include <linux/msm_ssbi.h>
 #include <linux/leds.h>
 #include <linux/pmic8058-othc.h>
 #include <linux/mfd/pmic8901.h>
+#include <linux/regulator/pmic8058-regulator.h>
 #include <linux/regulator/pmic8901-regulator.h>
 #include <linux/bootmem.h>
 #include <linux/leds-pm8058.h>
+#include <linux/pmic8058-xoadc.h>
 #include <linux/htc_flashlight.h>
 #include <linux/msm_adc.h>
 #include <linux/m_adcproc.h>
@@ -129,13 +134,17 @@
 #include "acpuclock.h"
 #include <mach/board_htc.h>
 
-#ifdef CONFIG_PERFLOCK
-#include <mach/perflock.h>
-#endif
-
 #ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
 int set_two_phase_freq(int cpufreq);
 #endif
+
+/*
+ * The UI_INTx_N lines are pmic gpio lines which connect i2c
+ * gpio expanders to the pm8058.
+ */
+#define UI_INT1_N 25
+#define UI_INT2_N 34
+#define UI_INT3_N 14
 
 /* Macros assume PMIC GPIOs start at 0 */
 #define PM8058_GPIO_BASE			NR_MSM_GPIOS
@@ -144,28 +153,25 @@ int set_two_phase_freq(int cpufreq);
 #define PM8058_MPP_BASE			(PM8058_GPIO_BASE + PM8058_GPIOS)
 #define PM8058_MPP_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_MPP_BASE)
 #define PM8058_MPP_SYS_TO_PM(sys_gpio)		(sys_gpio - PM8058_MPP_BASE)
+#define PM8058_IRQ_BASE				(NR_MSM_IRQS + NR_GPIO_IRQS)
+
 #define PM8901_GPIO_BASE			(PM8058_GPIO_BASE + \
 						PM8058_GPIOS + PM8058_MPPS)
 #define PM8901_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8901_GPIO_BASE)
-#define PM8901_GPIO_SYS_TO_PM(sys_gpio)		(sys_gpio - PM901_GPIO_BASE)
+#define PM8901_GPIO_SYS_TO_PM(sys_gpio)		(sys_gpio - PM8901_GPIO_BASE)
 #define PM8901_IRQ_BASE				(PM8058_IRQ_BASE + \
 						NR_PMIC8058_IRQS)
 
-int __init shooter_u_init_panel(struct resource *res, size_t size);
-#ifdef CONFIG_ION_MSM
-int __init shooter_u_ion_reserve_memory(struct memtype_reserve *table);
-int __init shooter_u_ion_init();
-#endif
 
 enum {
 	GPIO_EXPANDER_IRQ_BASE  = PM8901_IRQ_BASE + NR_PMIC8901_IRQS,
 	GPIO_EXPANDER_GPIO_BASE = PM8901_GPIO_BASE + PM8901_MPPS,
 	/* CORE expander */
 	GPIO_CORE_EXPANDER_BASE = GPIO_EXPANDER_GPIO_BASE,
-	GPIO_CLASS_D1_EN        = GPIO_CORE_EXPANDER_BASE,
+	GPIO_CLASS_D1_EN		= GPIO_CORE_EXPANDER_BASE,
 	GPIO_WLAN_DEEP_SLEEP_N,
 	GPIO_LVDS_SHUTDOWN_N,
-	GPIO_DISP_RESX_N        = GPIO_LVDS_SHUTDOWN_N,
+	GPIO_DISP_RESX_N		= GPIO_LVDS_SHUTDOWN_N,
 	GPIO_MS_SYS_RESET_N,
 	GPIO_CAP_TS_RESOUT_N,
 	GPIO_CAP_GAUGE_BI_TOUT,
@@ -181,7 +187,7 @@ enum {
 	GPIO_BATT_GAUGE_EN,
 	/* DOCKING expander */
 	GPIO_DOCKING_EXPANDER_BASE = GPIO_EXPANDER_GPIO_BASE + 16,
-	GPIO_MIPI_DSI_RST_N        = GPIO_DOCKING_EXPANDER_BASE,
+	GPIO_MIPI_DSI_RST_N		= GPIO_DOCKING_EXPANDER_BASE,
 	GPIO_AUX_JTAG_DET_N,
 	GPIO_DONGLE_DET_N,
 	GPIO_SVIDEO_LOAD_DET,
@@ -199,7 +205,7 @@ enum {
 	GPIO_TP_EXP2_IO15,
 	/* SURF expander */
 	GPIO_SURF_EXPANDER_BASE = GPIO_EXPANDER_GPIO_BASE + (16 * 2),
-	GPIO_SD_CARD_DET_1      = GPIO_SURF_EXPANDER_BASE,
+	GPIO_SD_CARD_DET_1	  = GPIO_SURF_EXPANDER_BASE,
 	GPIO_SD_CARD_DET_2,
 	GPIO_SD_CARD_DET_4,
 	GPIO_SD_CARD_DET_5,
@@ -217,7 +223,7 @@ enum {
 	GPIO_SURF_EXPANDER_IO15,
 	/* LEFT KB IO expander */
 	GPIO_LEFT_KB_EXPANDER_BASE = GPIO_EXPANDER_GPIO_BASE + (16 * 3),
-	GPIO_LEFT_LED_1            = GPIO_LEFT_KB_EXPANDER_BASE,
+	GPIO_LEFT_LED_1			= GPIO_LEFT_KB_EXPANDER_BASE,
 	GPIO_LEFT_LED_2,
 	GPIO_LEFT_LED_3,
 	GPIO_LEFT_LED_WLAN,
@@ -227,7 +233,7 @@ enum {
 	GPIO_LEFT_LED_5,
 	/* RIGHT KB IO expander */
 	GPIO_RIGHT_KB_EXPANDER_BASE = GPIO_EXPANDER_GPIO_BASE + (16 * 3) + 8,
-	GPIO_RIGHT_LED_1            = GPIO_RIGHT_KB_EXPANDER_BASE,
+	GPIO_RIGHT_LED_1			= GPIO_RIGHT_KB_EXPANDER_BASE,
 	GPIO_RIGHT_LED_2,
 	GPIO_RIGHT_LED_3,
 	GPIO_RIGHT_LED_BT,
@@ -292,6 +298,21 @@ struct pm8xxx_mpp_init_info {
 	} \
 }
 
+/*
+ * The UI_INTx_N lines are pmic gpio lines which connect i2c
+ * gpio expanders to the pm8058.
+ */
+#define UI_INT1_N 25
+#define UI_INT2_N 34
+#define UI_INT3_N 14
+
+static unsigned int engineerid;
+unsigned skuid;
+unsigned int shooter_u_get_engineerid(void)
+{
+	return engineerid;
+}
+
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
 static void (*sdc2_status_notify_cb)(int card_present, void *dev_id);
 static void *sdc2_status_notify_cb_devid;
@@ -308,13 +329,6 @@ static void *sdc2_status_notify_cb_devid;
 static void (*sdc5_status_notify_cb)(int card_present, void *dev_id);
 static void *sdc5_status_notify_cb_devid;
 #endif
-
-static unsigned int engineerid;
-unsigned skuid;
-unsigned int shooter_u_get_engineerid(void)
-{
-	return engineerid;
-}
 
 #define _GET_REGULATOR(var, name) do {				\
 	var = regulator_get(NULL, name);			\
@@ -442,30 +456,6 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_PERFLOCK
-static unsigned shooter_u_perf_acpu_table[] = {
-	384000000,
-	756000000,
-	1188000000,
-};
-
-static struct perflock_platform_data shooter_u_perflock_data = {
-	.perf_acpu_table = shooter_u_perf_acpu_table,
-	.table_size = ARRAY_SIZE(shooter_u_perf_acpu_table),
-};
-
-static unsigned shooter_u_cpufreq_ceiling_acpu_table[] = {
-	-1,
-	-1,
-	1026000000,
-};
-
-static struct perflock_platform_data shooter_u_cpufreq_ceiling_data = {
-	.perf_acpu_table = shooter_u_cpufreq_ceiling_acpu_table,
-	.table_size = ARRAY_SIZE(shooter_u_cpufreq_ceiling_acpu_table),
-};
-#endif
-
 /*
  * Consumer specific regulator names:
  *			 regulator name		consumer dev_name
@@ -550,10 +540,13 @@ static struct platform_device smsc911x_device = {
 		defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
 		defined(CONFIG_CRYPTO_DEV_QCEDEV_MODULE)
 
+#define QCE_SIZE		0x10000
+#define QCE_0_BASE		0x18500000
+
 #define QCE_HW_KEY_SUPPORT	0
 #define QCE_SHA_HMAC_SUPPORT	0
 #define QCE_SHARE_CE_RESOURCE	2
-#define QCE_CE_SHARED		1
+#define QCE_CE_SHARED	
 
 static struct resource qcrypto_resources[] = {
 	[0] = {
@@ -931,6 +924,23 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] = {
 	},
 };
 
+static void config_gpio_table(uint32_t *table, int len)
+{
+	int n, rc;
+	for (n = 0; n < len; n++) {
+		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
+		if (rc) {
+			pr_err("[CAM] %s: gpio_tlmm_config(%#x)=%d\n",
+				__func__, table[n], rc);
+			break;
+		}
+	}
+}
+
+/*
+ * =============== USB, Cable related function (BEGIN) ===============
+ */
+
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 
 #define ISP1763_INT_GPIO		117
@@ -1031,12 +1041,7 @@ static uint32_t usb_uart_input_pulldown_switch_table[] = {
 	GPIO_CFG(SHOOTER_U_GPIO_MHL_USB_EN, 0, GPIO_CFG_INPUT,
 		GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
 };
-/*
-static uint32_t usb_uart_switch_table[] = {
-	GPIO_CFG(SHOOTER_U_GPIO_MHL_USB_EN, 0, GPIO_CFG_OUTPUT,
-		GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-*/
+
 static uint32_t mhl_usb_switch_table[] = {
 	GPIO_CFG(SHOOTER_U_GPIO_MHL_USB_SW, 0, GPIO_CFG_OUTPUT,
 		GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
@@ -1284,7 +1289,33 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+static int __init board_serialno_setup(char *serialno)
+{
+	android_usb_pdata.serial_number = serialno;
+	return 1;
+}
+__setup("androidboot.serialno=", board_serialno_setup);
+
+void shooter_u_add_usb_devices(void)
+{
+	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
+	android_usb_pdata.products[0].product_id =
+			android_usb_pdata.product_id;
+
+	/* diag bit set */
+	if (get_radio_flag() & 0x20000)
+		android_usb_pdata.diag_init = 1;
+
+	msm_device_gadget_peripheral.dev.parent = &msm_device_otg.dev;
+	platform_device_register(&msm_device_gadget_peripheral);
+	platform_device_register(&android_usb_device);
+
+}
+
 #endif
+/*
+ * =============== USB, Cable related function (END) ===============
+ */
 
 #ifdef CONFIG_MSM_VPE
 static struct resource msm_vpe_resources[] = {
@@ -1330,20 +1361,9 @@ static struct platform_device htc_battery_pdev = {
 	},
 };
 #endif
-
-static void config_gpio_table(uint32_t *table, int len)
-{
-	int n, rc;
-	for (n = 0; n < len; n++) {
-		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("[CAM] %s: gpio_tlmm_config(%#x)=%d\n",
-				__func__, table[n], rc);
-			break;
-		}
-	}
-}
-
+/*
+ * =============== Camera related function (BEGIN) ===============
+ */
 #ifdef CONFIG_MSM_CAMERA
 static uint32_t camera_off_gpio_table_sp3d[] = {
 	GPIO_CFG(SHOOTER_U_CAM_I2C_SDA	, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),/*i2c*/
@@ -1949,7 +1969,9 @@ static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
 	#endif
 };
 #endif
-
+/*
+ * =============== Camera related function (END) ===============
+ */
 #ifdef CONFIG_MSM_GEMINI
 static struct resource msm_gemini_resources[] = {
 	{
@@ -1978,8 +2000,6 @@ static uint32_t gsbi4_gpio_table[] = {
 	GPIO_CFG(SHOOTER_U_CAM_I2C_SCL, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
 };
 
-// FIXME
-
 static struct tps65200_platform_data tps65200_data = {
 	.gpio_chg_stat = PM8058_GPIO_IRQ(PM8058_IRQ_BASE, SHOOTER_U_CHG_STAT),
 	.gpio_chg_int  = MSM_GPIO_TO_INT(SHOOTER_U_GPIO_CHG_INT),
@@ -2004,8 +2024,6 @@ static struct i2c_board_info msm_tps_65200_boardinfo[] __initdata = {
 		.platform_data = &tps65200_data,
 	},
 };
-
-// END FIXME
 
 static uint32_t gsbi5_gpio_table[] = {
 	GPIO_CFG(SHOOTER_U_TP_I2C_SDA, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA),
@@ -2161,6 +2179,21 @@ static struct platform_device msm_batt_device = {
 	.dev.platform_data = &msm_psy_batt_data,
 };
 #endif
+
+/* Sensors DSPS platform data */
+#ifdef CONFIG_MSM_DSPS
+static struct dsps_gpio_info dsps_gpios[] = {
+};
+
+static void __init msm8x60_init_dsps(void)
+{
+	struct msm_dsps_platform_data *pdata =
+		msm_dsps_device.dev.platform_data;
+
+	pdata->gpios = dsps_gpios;
+	pdata->gpios_num = ARRAY_SIZE(dsps_gpios);
+}
+#endif /* CONFIG_MSM_DSPS */
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 3) /* 4 bpp x 3 pages */
@@ -2921,7 +2954,6 @@ static struct flashlight_platform_data flashlight_data = {
 	.torch 			= SHOOTER_U_TORCH_EN,
 	.flash 			= SHOOTER_U_FLASH_EN,
 	.flash_duration_ms 	= 600,
-	.led_count 		= 2,
 };
 
 static struct platform_device flashlight_device = {
@@ -3019,6 +3051,9 @@ static struct platform_device msm_adc_device = {
 };
 #endif /* CONFIG_SENSORS_MSM_ADC */
 
+/*
+ * =============== Headset related function (BEGIN) ===============
+ */
 /* HTC_HEADSET_GPIO Driver */
 static struct htc_headset_gpio_platform_data htc_headset_gpio_data = {
 	.hpin_gpio		= SHOOTER_U_GPIO_AUD_HP_DET,
@@ -3089,6 +3124,11 @@ static struct headset_adc_config htc_headset_mgr_config[] = {
 		.adc_min = 7976,
 	},
 	{
+		.type = HEADSET_BEATS_SOLO,
+		.adc_max = 14604,
+		.adc_min = 8676,
+	},
+	{
 		.type = HEADSET_MIC,
 		.adc_max = 7975,
 		.adc_min = 666,
@@ -3121,6 +3161,9 @@ static void headset_device_register(void)
 	pr_info("[HS_BOARD] (%s) Headset device register\n", __func__);
 	platform_device_register(&htc_headset_mgr);
 }
+/*
+ * =============== Headset related function (END) ===============
+ */
 
 static struct platform_device *asoc_devices[] __initdata = {
 	&asoc_msm_pcm,
@@ -3244,7 +3287,9 @@ static struct platform_device cable_detect_device = {
 		.platform_data = &cable_detect_pdata,
 	},
 };
-
+/*
+ * =============== LED related function (BEGIN) ===============
+ */
 static struct pm8058_led_config pm_led_config[] = {
 	{
 		.name = "green",
@@ -3301,8 +3346,12 @@ static struct platform_device pm8058_leds = {
 		.platform_data	= &pm8058_leds_data,
 	},
 };
+/*
+ * =============== LED related function (END) ===============
+ */
 
 #ifdef CONFIG_FB_MSM_HDMI_MHL
+static int pm8901_mpp0_init(void);
 static struct regulator *reg_8901_l0;
 static struct regulator *reg_8058_l19;
 static struct regulator *reg_8901_l3;
@@ -3434,6 +3483,7 @@ static int mhl_sii9234_power(int on)
 	case 1:
 		mhl_sii9234_all_power(true);
 		config_gpio_table(mhl_gpio_table, ARRAY_SIZE(mhl_gpio_table));
+		pm8901_mpp0_init();
 		break;
 	default:
 		pr_warning("%s(%d) got unsupport parameter!!!\n", __func__, on);
@@ -3615,7 +3665,6 @@ static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
 	},
 };
 
-#ifdef CONFIG_ANDROID_PMEM
 static void __init size_pmem_device(struct android_pmem_platform_data *pdata, unsigned long start, unsigned long size)
 {
 	pdata->start = start;
@@ -3623,7 +3672,6 @@ static void __init size_pmem_device(struct android_pmem_platform_data *pdata, un
 	pr_info("%s: allocating %lu bytes at 0x%p (0x%lx physical) for %s\n",
 		__func__, size, __va(start), start, pdata->name);
 }
-#endif
 
 static void __init size_pmem_devices(void)
 {
@@ -3765,17 +3813,6 @@ static int pm8058_gpios_init(void)
 				.inv_int_pol	= 0,
 			}
 		},
-		/* FIXME
-		{
-			SHOOTER_U_PLS_INT,
-			{
-				.direction		= PM_GPIO_DIR_IN,
-				.pull			= PM_GPIO_PULL_UP_1P5,
-				.vin_sel		= PM8058_GPIO_VIN_L5,
-				.function		= PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol	= 0,
-			},
-		},*/
 		{ /* Green LED */
 			PM8058_GPIO_PM_TO_SYS(SHOOTER_U_GREEN_LED),
 			{
@@ -4113,6 +4150,13 @@ static struct pm8xxx_rtc_platform_data pm8058_rtc_pdata = {
 	.rtc_write_enable	= true,
 	.rtc_alarm_powerup	= false,
 };
+
+#define PM8058_VREG(_id) { \
+	.name = "pm8058-regulator", \
+	.id = _id, \
+	.platform_data = &pm8058_vreg_init[_id], \
+	.data_size = sizeof(pm8058_vreg_init[_id]), \
+}
 
 static struct pm8xxx_pwrkey_platform_data pm8058_pwrkey_pdata = {
 	.pull_up		= 1,
@@ -4765,15 +4809,11 @@ static struct i2c_board_info msm_i2c_gsbi5_info[] = {
 	},
 };
 
-// FIX ME
-
 #ifdef CONFIG_PMIC8901
 
 #define PM8901_GPIO_INT           91
-
-/* FIXME not sure if needed
 #ifdef CONFIG_FB_MSM_HDMI_MHL
-static int pm8901_mpp_init(void)
+static int pm8901_mpp0_init(void)
 {
 	int rc;
 	pr_err("%s\n", __func__);
@@ -4807,8 +4847,7 @@ static int pm8901_mpp_init(void)
 
 	return rc;
 }
-#endif
-*/
+#endif	/* CONFIG_FB_MSM_HDMI_MHL */
 
 static struct pm8901_gpio_platform_data pm8901_mpp_data = {
 	.gpio_base	= PM8901_GPIO_PM_TO_SYS(0),
@@ -4952,25 +4991,6 @@ enum version{
 
 static int isl29028_power(int pwr_device, uint8_t enable)
 {
-	/*unsigned int old_status = 0;
-	int ret = 0, on = 0;
-
-	mutex_lock(&isl29028_lock);
-
-	old_status = als_power_control;
-	if (enable)
-		als_power_control |= pwr_device;
-	else
-		als_power_control &= ~pwr_device;
-
-	on = als_power_control ? 1 : 0;
-	if (old_status == 0 && on)
-		ret = __isl29028_power(1);
-	else if (!on)
-		ret = __isl29028_power(0);
-
-	mutex_unlock(&isl29028_lock);
-	return ret;*/
 	return 0;
 }
 
@@ -5277,7 +5297,9 @@ static void __init shooter_u_map_io(void)
 static void __init msm8x60_init_tlmm(void)
 {
 }
-
+/*
+ * =============== SD related function (BEGIN) ===============
+ */
 #if (defined(CONFIG_MMC_MSM_SDC1_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC2_SUPPORT)\
 	|| defined(CONFIG_MMC_MSM_SDC3_SUPPORT)\
@@ -6013,20 +6035,6 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
-#if 0
-static struct mmc_platform_data msm8x60_sdc2_data = {
-	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29 | MMC_VDD_165_195,
-	.translate_vdd  = msm_sdcc_setup_power,
-	.sdio_lpm_gpio_setup = msm_sdcc_sdio_lpm_gpio,
-	.mmc_bus_width  = MMC_CAP_8_BIT_DATA,
-	.msmsdcc_fmin	= 400000,
-	.msmsdcc_fmid	= 24000000,
-	.msmsdcc_fmax	= 48000000,
-	.nonremovable	= 0,
-	.pclk_src_dfab  = 1,
-	.register_status_notify = sdc2_register_status_notify,
-};
-#endif
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
@@ -6092,20 +6100,6 @@ static void __init msm8x60_init_mmc(void)
 	msm_add_sdcc(1, &msm8x60_sdc1_data);
 #endif
 #ifdef CONFIG_MMC_MSM_SDC2_SUPPORT
-	/*
-	 * MDM SDIO client is connected to SDC2 on charm SURF/FFA
-	 * and no card is connected on 8660 SURF/FFA/FLUID.
-	 */
-/*	
-	sdcc_vreg_data[1].vdd_data = &sdcc_vdd_reg_data[1];
-	sdcc_vreg_data[1].vdd_data->reg_name = "8058_s3";
-	sdcc_vreg_data[1].vdd_data->set_voltage_sup = 1;
-	sdcc_vreg_data[1].vdd_data->level = 1800000;
-
-	sdcc_vreg_data[1].vccq_data = NULL;
-*/	 
-	// Follow up in  shooter_u_init_mmc()
-	 
 #endif
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 	/* SDCC3 : External card slot connected */
@@ -6141,7 +6135,7 @@ static void __init msm8x60_init_mmc(void)
 	if (ret != 0)
 		printk(KERN_ERR "%s: Unable to initialize MMC (SDCC4)\n", __func__);
 #endif
-/* HTC_WIFI_END */
+
 #ifdef CONFIG_MMC_MSM_SDC5_SUPPORT
 	/*
 	 * MDM SDIO client is connected to SDC5 on charm SURF/FFA
@@ -6151,11 +6145,15 @@ static void __init msm8x60_init_mmc(void)
 	sdcc_vreg_data[4].vdd_data->reg_name = "8058_s3";
 	sdcc_vreg_data[4].vdd_data->set_voltage_sup = 1;
 	sdcc_vreg_data[4].vdd_data->level = 1800000;
-
 	sdcc_vreg_data[4].vccq_data = NULL;
 #endif
 }
-
+/*
+ * =============== SD related function (END) ===============
+ */
+/*
+ * =============== HDMI related function (BEGIN) ===============
+ */
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 static int hdmi_enable_5v(int on)
 {
@@ -6262,22 +6260,6 @@ static int hdmi_cec_power(int on)
 	return 0;
 }
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
-
-/*
-static uint32_t msm_spi_gpio[] = {
-	GPIO_CFG(SHOOTER_U_SPI_DO,  0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SPI_DI,  0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SPI_CS,  0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(SHOOTER_U_SPI_CLK, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-
-static uint32_t auxpcm_gpio_table[] = {
-	GPIO_CFG(111, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(112, 0, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(113, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(114, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-*/
 
 #ifdef CONFIG_FB_MSM_TVOUT
 static struct regulator *reg_8058_l13;
@@ -6387,7 +6369,9 @@ static struct tvenc_platform_data atv_pdata = {
 #endif
 };
 #endif
-
+/*
+ * =============== HDMI related function (END) ===============
+ */
 #ifdef CONFIG_MSM_RPM
 static struct msm_rpm_platform_data msm_rpm_data = {
 	.reg_base_addrs = {
@@ -6466,60 +6450,6 @@ void msm_snddev_rx_route_deconfig(void)
 	pr_debug("%s\n", __func__);
 }
 
-void shooter_u_add_usb_devices(void)
-{
-	printk(KERN_INFO "%s rev: %d\n", __func__, system_rev);
-	android_usb_pdata.products[0].product_id =
-			android_usb_pdata.product_id;
-
-	/* diag bit set */
-	if (get_radio_flag() & 0x20000)
-		android_usb_pdata.diag_init = 1;
-
-	msm_device_gadget_peripheral.dev.parent = &msm_device_otg.dev;
-	platform_device_register(&msm_device_gadget_peripheral);
-	platform_device_register(&android_usb_device);
-
-/* FIXME
-	config_shooter_u_usb_uart_gpios(0);
-	config_shooter_u_usb_id_gpios(0);
-	config_shooter_u_mhl_gpios();
-
-	config_gpio_table(mhl_usb_switch_table, ARRAY_SIZE(mhl_usb_switch_table));
-
-	gpio_set_value(SHOOTER_U_GPIO_MHL_USB_SW, 0);
-
-	//HW has auto switch of usb/uart
-	config_gpio_table(usb_uart_input_pulldown_switch_table, ARRAY_SIZE(usb_uart_input_pulldown_switch_table));
-*/ 
-}
-
-// FIX ME
-/*
-int __initdata irq_ignore_tbl[] =
-{
-	MSM_GPIO_TO_INT(64),
-	MSM_GPIO_TO_INT(65),
-};
-unsigned __initdata irq_num_ignore_tbl = ARRAY_SIZE(irq_ignore_tbl);
-
-int __initdata clk_ignore_tbl[] =
-{
-	L_GSBI12_UART_CLK,
-	L_SDC4_CLK,
-	L_SDC4_P_CLK,
-};
-
-unsigned __initdata clk_num_ignore_tbl = ARRAY_SIZE(clk_ignore_tbl);
-*/
-
-static int __init board_serialno_setup(char *serialno)
-{
-	android_usb_pdata.serial_number = serialno;
-	return 1;
-}
-__setup("androidboot.serialno=", board_serialno_setup);
-
 #define PM8058_LPM_SET(id)	(1 << RPM_VREG_ID_##id)
 #define PM8901_LPM_SET(id)	(1 << (RPM_VREG_ID_##id - RPM_VREG_ID_PM8901_L0))
 
@@ -6537,14 +6467,18 @@ uint32_t __initdata regulator_lpm_set[] =
 	PM8901_LPM_SET(PM8901_L5) | PM8901_LPM_SET(PM8901_L6),
 };
 
+int __initdata irq_ignore_tbl[] =
+{
+	MSM_GPIO_TO_INT(133),
+	MSM_GPIO_TO_INT(134),
+};
+unsigned __initdata irq_num_ignore_tbl = ARRAY_SIZE(irq_ignore_tbl);
+
 static void __init msm8x60_init(struct msm_board_data *board_data)
 {
 	uint32_t soc_platform_version;
 	int rc = 0;
 	struct kobject *properties_kobj;
-/*FIX ME
-	msm_mpm_defer_ignore_list = 1;
-*/
 
 	/*
 	 * Initialize RPM first as other drivers and devices may need
@@ -6632,11 +6566,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	/* CPU frequency control is not supported on simulated targets. */
 	acpuclk_init(&acpuclk_8x60_soc_data);
 
-#ifdef CONFIG_PERFLOCK
-	perflock_init(&shooter_u_perflock_data);
-	cpufreq_ceiling_init(&shooter_u_cpufreq_ceiling_data);
-#endif
-
 #ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
 	set_two_phase_freq(1134000);
 #endif
@@ -6647,6 +6576,9 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	msm8x60_init_mmc();
 #ifdef CONFIG_S5K6AAFX
 	msm8x60_init_camera();
+#endif
+#ifdef CONFIG_MSM_DSPS
+	msm8x60_init_dsps();
 #endif
 
 #if defined(CONFIG_PMIC8058_OTHC) || defined(CONFIG_PMIC8058_OTHC_MODULE)
@@ -6663,7 +6595,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 			PM8058_GPIO_PM_TO_SYS(SHOOTER_U_AUD_REMO_EN);
 		htc_headset_8x60.dev.platform_data =
 			&htc_headset_8x60_data;
-/*			&htc_headset_8x60_data_xb; */
 		htc_headset_mgr_data.headset_config_num =
 			ARRAY_SIZE(htc_headset_mgr_config);
 		htc_headset_mgr_data.headset_config = htc_headset_mgr_config;
@@ -6676,10 +6607,6 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 
 	platform_add_devices(shooter_u_devices,
 			     ARRAY_SIZE(shooter_u_devices));
-
-#ifdef CONFIG_ION_MSM
-	shooter_u_ion_init();
-#endif
 
 	/*usb driver won't be loaded in MFG 58 station and gift mode*/
 	if (!(board_mfg_mode() == 6 || board_mfg_mode() == 7))
@@ -6745,10 +6672,7 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
 	shooter_u_audio_init();
 #endif
 
-	sysinfo_proc_init();
 	shooter_u_init_keypad();
-	shooter_u_wifi_init();
-	headset_device_register();
 
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
 	if (properties_kobj)
@@ -6756,6 +6680,17 @@ static void __init msm8x60_init(struct msm_board_data *board_data)
                                 &shooter_u_properties_attr_group);
 	if (!properties_kobj || rc)
 		pr_err("failed to create board_properties\n");
+
+	sysinfo_proc_init();
+
+	shooter_u_wifi_init();
+
+	msm_fusion_setup_pinctrl();
+
+	msm_mpm_set_irq_ignore_list(irq_ignore_tbl, irq_num_ignore_tbl);
+
+	headset_device_register();
+
 }
 
 static void __init shooter_u_charm_init_early(void)

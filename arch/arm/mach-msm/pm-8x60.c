@@ -1068,8 +1068,6 @@ static int msm_pm_enter(suspend_state_t state)
 			}
 		}
 
-		curr_len = msm_dump_gpios(NULL, curr_len,
-						gpio_sleep_status_info);
 		curr_len = pm8xxx_dump_gpios(NULL, curr_len,
 						gpio_sleep_status_info);
 		curr_len = pm8xxx_dump_mpp(NULL, curr_len,

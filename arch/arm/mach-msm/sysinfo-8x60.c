@@ -94,7 +94,6 @@ static int sys_gpio_read_proc(char *page, char **start, off_t off,
 		/* for first time, dump to buffer */
 		memset(gpio_info_buffer, 0, sizeof(gpio_info_buffer));
 		len = 0;
-		len = msm_dump_gpios(NULL, len, gpio_info_buffer);
 		len = pm8xxx_dump_gpios(NULL, len, gpio_info_buffer);
 		len = pm8xxx_dump_mpp(NULL, len, gpio_info_buffer);
 		len = pm8901_dump_mpp(NULL, len, gpio_info_buffer);

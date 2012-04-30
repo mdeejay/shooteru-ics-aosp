@@ -770,7 +770,6 @@ DEFINE_SIMPLE_ATTRIBUTE(gpio_int_type_fops, gpio_debug_int_type_get,
 
 static int list_gpios_show(struct seq_file *m, void *unused)
 {
-	msm_dump_gpios(m, 0, NULL);
 	pm8xxx_dump_gpios(m, 0, NULL);
 	pm8xxx_dump_mpp(m, 0, NULL);
 	return 0;

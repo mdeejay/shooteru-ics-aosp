@@ -153,7 +153,7 @@ extern int panel_type;
 
 int __init shooter_u_init_mmc(void);
 void __init shooter_u_audio_init(void);
-int __init shooter_u_init_keypad(void);
+void __init shooter_u_init_keypad(void);
 int __init shooter_u_wifi_init(void);
 int __init shooter_u_init_panel(struct resource *res, size_t size);
 

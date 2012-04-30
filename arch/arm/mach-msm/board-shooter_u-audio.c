@@ -1,4 +1,4 @@
-/* linux/arch/arm/mach-msm/board-spade-audio.c
+/* linux/arch/arm/mach-msm/board-shooter_u-audio.c
  *
  * Copyright (C) 2010-2011 HTC Corporation.
  *

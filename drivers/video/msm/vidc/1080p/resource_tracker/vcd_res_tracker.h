@@ -28,6 +28,7 @@
 
 #define RESTRK_1080P_MIN_PERF_LEVEL RESTRK_1080P_VGA_PERF_LEVEL
 #define RESTRK_1080P_MAX_PERF_LEVEL RESTRK_1080P_1080P_PERF_LEVEL
+
 struct res_trk_context {
 	struct device *device;
 	u32 irq_num;
@@ -40,6 +41,8 @@ struct res_trk_context {
 	struct regulator *footswitch;
 	struct msm_vidc_platform_data *vidc_platform_data;
 	int memtype;
+	int fw_mem_type;
+	int cmd_mem_type;
 #ifdef CONFIG_MSM_BUS_SCALING
 	struct msm_bus_scale_pdata *vidc_bus_client_pdata;
 	uint32_t     pcl;
@@ -50,12 +53,15 @@ struct res_trk_context {
 	u32 disable_dmx;
 	u32 disable_fullhd;
 	enum ddl_mem_area res_mem_type;
+	u32 mmu_clks_on;
+	u32 secure_session;
+	struct mutex secure_lock;
 };
 
 #if DEBUG
 
-#define VCDRES_MSG_LOW(xx_fmt...)	printk(KERN_INFO "\n\t* [VID] " xx_fmt)
-#define VCDRES_MSG_MED(xx_fmt...)	printk(KERN_INFO "\n  * [VID] " xx_fmt)
+#define VCDRES_MSG_LOW(xx_fmt...)	printk(KERN_INFO "\n\t* " xx_fmt)
+#define VCDRES_MSG_MED(xx_fmt...)	printk(KERN_INFO "\n  * " xx_fmt)
 
 #else
 
@@ -64,8 +70,8 @@ struct res_trk_context {
 
 #endif
 
-#define VCDRES_MSG_HIGH(xx_fmt...)	printk(KERN_WARNING "\n [VID] " xx_fmt)
-#define VCDRES_MSG_ERROR(xx_fmt...)	printk(KERN_ERR "\n [VID] err: " xx_fmt)
-#define VCDRES_MSG_FATAL(xx_fmt...)	printk(KERN_ERR "\n [VID] <FATAL> " xx_fmt)
+#define VCDRES_MSG_HIGH(xx_fmt...)	printk(KERN_WARNING "\n" xx_fmt)
+#define VCDRES_MSG_ERROR(xx_fmt...)	printk(KERN_ERR "\n err: " xx_fmt)
+#define VCDRES_MSG_FATAL(xx_fmt...)	printk(KERN_ERR "\n<FATAL> " xx_fmt)
 
 #endif

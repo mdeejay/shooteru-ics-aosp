@@ -34,13 +34,7 @@ struct kgsl_iommu {
 static int kgsl_iommu_pt_equal(struct kgsl_pagetable *pt,
 					unsigned int pt_base)
 {
-	struct iommu_domain *domain;
-	if (!pt) {
-		KGSL_CORE_ERR("pt is NULL\n");
-		return -EINVAL;
-	}
-	domain = pt->priv;
-
+	struct iommu_domain *domain = pt->priv;
 	return pt && pt_base && ((unsigned int)domain == pt_base);
 }
 

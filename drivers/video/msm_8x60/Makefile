@@ -63,11 +63,7 @@ msm_mipi-objs := mipi_dsi.o mipi_dsi_host.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI) += msm_mipi.o
 
 # MIPI manufacture
-#obj-$(CONFIG_FB_MSM_MIPI_DSI_TOSHIBA) += mipi_toshiba.o
-obj-$(CONFIG_FB_MSM_MIPI_DSI_HIMAX) += mipi_himax.o
 obj-$(CONFIG_FB_MSM_MIPI_DSI_NOVATEK) += mipi_novatek.o
-#obj-$(CONFIG_FB_MSM_MIPI_DSI_RENESAS) += mipi_renesas.o
-obj-$(CONFIG_FB_MSM_MIPI_DSI_ORISE) += mipi_orise.o
 
 # TVEnc
 obj-$(CONFIG_FB_MSM_TVOUT) += tvenc.o
@@ -102,10 +98,6 @@ endif
 
 ifeq ($(CONFIG_FB_MSM_MIPI_PANEL_DETECT),y)
 obj-y += mipi_novatek_cmd_qhd_pt.o
-#obj-y += mipi_novatek_cmd_wvga_pt.o
-obj-y += mipi_himax_video_720p_pt.o
-#obj-y += mipi_renesas_cmd_wvga_pt.o
-obj-y += mipi_orise_cmd_qhd_pt.o
 else
 obj-$(CONFIG_FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT) += mipi_toshiba_video_wvga_pt.o
 obj-$(CONFIG_FB_MSM_MIPI_NOVATEK_VIDEO_QHD_PT) += mipi_novatek_video_qhd_pt.o

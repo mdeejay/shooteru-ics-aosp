@@ -371,6 +371,22 @@ int shooter_u_is_msm_i2s_slave(void)
 	return 1;
 }
 
+void shooter_u_get_acoustic_tables(struct acoustic_tables *tb)
+{
+		strcpy(tb->aic3254, "IOTable.txt");
+}
+
+int shooter_u_support_beats(void)
+{
+	return 1;
+}
+
+void shooter_u_enable_beats(int en)
+{
+	pr_aud_info("%s: %d\n", __func__, en);
+	set_beats_on(en);
+}
+
 void shooter_u_spibus_enable(int en)
 {
 	uint32_t msm_spi_gpio_on[] = {
@@ -461,11 +477,9 @@ static struct acoustic_ops acoustic = {
 	.enable_mic_bias = shooter_u_mic_enable,
 	.support_aic3254 = shooter_u_support_aic3254,
 	.support_back_mic = shooter_u_support_back_mic,
-/*
         .get_acoustic_tables = shooter_u_get_acoustic_tables,
         .support_beats = shooter_u_support_beats,
         .enable_beats = shooter_u_enable_beats,
-*/
 	.set_q6_effect = shooter_u_set_q6_effect_mode,
 };
 

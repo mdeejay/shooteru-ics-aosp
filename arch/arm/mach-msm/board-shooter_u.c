@@ -2196,13 +2196,13 @@ static void __init msm8x60_init_dsps(void)
 #endif /* CONFIG_MSM_DSPS */
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 3) /* 4 bpp x 3 pages */
+#define MSM_FB_PRIM_BUF_SIZE (roundup((960 * 540 * 4), 4096) * 3) /* 4 bpp x 3 pages */
 #else
-#define MSM_FB_PRIM_BUF_SIZE (960 * ALIGN(540, 32) * 4 * 2) /* 4 bpp x 2 pages */
+#define MSM_FB_PRIM_BUF_SIZE (roundup((960 * 540 * 4), 4096) * 2) /* 4 bpp x 3 pages */
 #endif
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-#define MSM_FB_EXT_BUF_SIZE  (1920 * 1080 * 2 * 1) /* 2 bpp x 1 page */
+#define MSM_FB_EXT_BUF_SIZE  (roundup((1920 * 1080 * 2), 4096) * 1) /* 2 bpp x 1 page */
 #else
 #define MSM_FB_EXT_BUFT_SIZE    0
 #endif
@@ -2224,32 +2224,21 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_PMEM_ADSP2_SIZE			0x800000 /* 1152 * 1920 * 1.5 * 2 */
 #define MSM_PMEM_AUDIO_SIZE			0x239000
 #define MSM_PMEM_TZCOM_SIZE			0xC7000
-
 #define MSM_PMEM_SF_BASE			(0x40400000)
 #define MSM_PMEM_ADSP2_BASE			(0x80000000 - MSM_PMEM_ADSP2_SIZE)
 #define MSM_PMEM_ADSP_BASE			(MSM_PMEM_ADSP2_BASE - MSM_PMEM_ADSP_SIZE)
 #define MSM_PMEM_TZCOM_BASE			(MSM_PMEM_SF_BASE + MSM_PMEM_SF_SIZE)
-#define MSM_FB_WRITEBACK_BASE		(MSM_PMEM_TZCOM_BASE + MSM_PMEM_TZCOM_SIZE)
-#define MSM_FB_BASE					(MSM_FB_WRITEBACK_BASE + MSM_FB_WRITEBACK_SIZE)
+#define MSM_FB_WRITEBACK_BASE			(MSM_PMEM_TZCOM_BASE + MSM_PMEM_TZCOM_SIZE)
+#define MSM_FB_BASE				(MSM_FB_WRITEBACK_BASE + MSM_FB_WRITEBACK_SIZE)
 #define MSM_PMEM_AUDIO_BASE			(MSM_FB_BASE + MSM_FB_SIZE)
-
 #define MSM_SMI_BASE				0x38000000
 #define MSM_SMI_SIZE				0x4000000
-
-/* Kernel SMI PMEM Region for video core, used for Firmware */
-/* and encoder, decoder scratch buffers */
-/* Kernel SMI PMEM Region Should always precede the user space */
-/* SMI PMEM Region, as the video core will use offset address */
-/* from the Firmware base */
-#define KERNEL_SMI_BASE			 (MSM_SMI_BASE)
-#define KERNEL_SMI_SIZE			 0x400000
-
-/* User space SMI PMEM Region for video core*/
-/* used for encoder, decoder input & output buffers  */
-#define USER_SMI_BASE			   (KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
-#define USER_SMI_SIZE			   (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
-#define MSM_PMEM_SMIPOOL_BASE	   USER_SMI_BASE
-#define MSM_PMEM_SMIPOOL_SIZE	   USER_SMI_SIZE
+#define KERNEL_SMI_BASE			 	(MSM_SMI_BASE)
+#define KERNEL_SMI_SIZE			 	0x400000
+#define USER_SMI_BASE			   	(KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
+#define USER_SMI_SIZE			   	(MSM_SMI_SIZE - KERNEL_SMI_SIZE)
+#define MSM_PMEM_SMIPOOL_BASE	   		USER_SMI_BASE
+#define MSM_PMEM_SMIPOOL_SIZE	   		USER_SMI_SIZE
 
 static unsigned fb_size;
 static int __init fb_size_setup(char *p)

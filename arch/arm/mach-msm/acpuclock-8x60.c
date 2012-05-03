@@ -971,7 +971,7 @@ static __init struct clkctl_acpu_speed *select_freq_plan(void)
 		}
 	} else {
 		max_khz = 1674000;
-		acpu_freq_tbl = acpu_freq_tbl_nom;
+		acpu_freq_tbl = acpu_freq_tbl_slow;
 	}
 
 	/* Truncate the table based to max_khz. */

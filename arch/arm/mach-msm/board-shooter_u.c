@@ -2227,12 +2227,12 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
-#define MSM_PMEM_SF_SIZE      0x8000000 /* 128 Mbytes */
-#else
 #define MSM_PMEM_SF_SIZE      0x4000000 /* 64 Mbytes */
+#else
+#define MSM_PMEM_SF_SIZE      0x2000000 /* 32 Mbytes */
 #endif
 
-#define MSM_PMEM_KERNEL_EBI1_SIZE               0X600000
+#define MSM_PMEM_KERNEL_EBI1_SIZE               0x600000
 #define MSM_PMEM_ADSP_SIZE                      0x2000000
 #define MSM_PMEM_ADSP2_SIZE			0x800000 /* 1152 * 1920 * 1.5 * 2 */
 #define MSM_PMEM_AUDIO_SIZE			0x28B000

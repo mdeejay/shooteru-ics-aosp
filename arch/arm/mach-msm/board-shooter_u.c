@@ -2255,15 +2255,17 @@ static void __init msm8x60_init_dsps(void)
 #define USER_SMI_SIZE         (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
 #define MSM_PMEM_SMIPOOL_SIZE USER_SMI_SIZE
 
-#define MSM_ION_SF_SIZE    0x1800000 /* 24MB */
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+#define MSM_ION_SF_SIZE    MSM_PMEM_SF_SIZE
 #define MSM_ION_CAMERA_SIZE     MSM_PMEM_ADSP_SIZE
 #define MSM_ION_MM_FW_SIZE  0x200000 /* (2MB) */
-#define MSM_ION_MM_SIZE    0x3600000 /* (54MB) */
+#define MSM_ION_MM_SIZE    MSM_PMEM_ADSP_SIZE
 #define MSM_ION_MFC_SIZE  SZ_8K
-#define MSM_ION_WB_SIZE    0x600000 /* 6MB */
+#define MSM_ION_WB_SIZE         0x600000 /* 6MB */
+#endif
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define MSM_ION_HEAP_NUM 7
+#define MSM_ION_HEAP_NUM 8
 #else
 #define MSM_ION_HEAP_NUM 1
 #endif

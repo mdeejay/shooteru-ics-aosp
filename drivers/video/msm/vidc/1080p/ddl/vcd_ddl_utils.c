@@ -24,8 +24,6 @@ struct time_data {
 static struct time_data proc_time[MAX_TIME_DATA];
 #define DDL_MSG_TIME(x...) printk(KERN_DEBUG x)
 
-#define DDL_FW_CHANGE_ENDIAN
-
 static unsigned int vidc_mmu_subsystem[] =	{
 		MSM_SUBSYSTEM_VIDEO, MSM_SUBSYSTEM_VIDEO_FWARE};
 
@@ -289,23 +287,6 @@ void ddl_list_buffers(struct ddl_client_context *ddl)
 }
 #endif
 
-#ifdef DDL_FW_CHANGE_ENDIAN
-static void ddl_fw_change_endian(u8 *fw, u32 fw_size)
-{
-	u32 i = 0;
-	u8  temp;
-	for (i = 0; i < fw_size; i = i + 4) {
-		temp = fw[i];
-		fw[i] = fw[i+3];
-		fw[i+3] = temp;
-		temp = fw[i+1];
-		fw[i+1] = fw[i+2];
-		fw[i+2] = temp;
-	}
-	return;
-}
-#endif
-
 u32 ddl_fw_init(struct ddl_buf_addr *dram_base)
 {
 
@@ -319,15 +300,12 @@ u32 ddl_fw_init(struct ddl_buf_addr *dram_base)
 		vidc_video_codec_fw_size);
 	memcpy(dest_addr, vidc_video_codec_fw,
 		vidc_video_codec_fw_size);
-#ifdef DDL_FW_CHANGE_ENDIAN
-	ddl_fw_change_endian(dest_addr, vidc_video_codec_fw_size);
-#endif
 	return true;
 }
 
 void ddl_fw_release(void)
 {
-
+	res_trk_close_secure_session();
 }
 
 void ddl_set_core_start_time(const char *func_name, u32 index)

@@ -2265,7 +2265,7 @@ static void __init msm8x60_init_dsps(void)
 #endif
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define MSM_ION_HEAP_NUM 8
+#define MSM_ION_HEAP_NUM 7
 #else
 #define MSM_ION_HEAP_NUM 1
 #endif
